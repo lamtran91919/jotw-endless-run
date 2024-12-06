@@ -27,4 +27,3 @@ Trò chơi được xây dựng bằng ngôn ngữ lập trình Python, kết h�
 1. Clone dự án về máy:
    ```bash
    git clone https://github.com/cheatydondon/endless-run.git
-github.com
