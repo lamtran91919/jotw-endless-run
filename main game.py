@@ -146,13 +146,13 @@ def draw_hand_landmarks(frame, hand_landmarks):
 # Function to display the menu screen
 def display_menu():
     font = pygame.font.Font(None, 50)
-    title_text = font.render("JOURNEY TO THE WEST", True, BLACK)
-    play_text = font.render("PLAY", True, BLACK)
-    tutorial_text = font.render("TUTORIAL", True, BLACK)
-    quit_text = font.render("QUIT", True, BLACK)
+    title_text = font.render("JOURNEY TO THE WEST", True, WHITE)
+    play_text = font.render("PLAY", True, WHITE)
+    tutorial_text = font.render("TUTORIAL", True, WHITE)
+    quit_text = font.render("QUIT", True, WHITE)
 
     # Clear the webcam area
-    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH, 0, CAMERA_WIDTH, SCREEN_HEIGHT))
+    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH, 0, CAMERA_WIDTH, SCREEN_HEIGHT))
 
     # Draw the menu
     screen.blit(menu_image, (0, 0)) # Menu image
@@ -204,7 +204,7 @@ def display_tutorial():
     # Render and display the tutorial text
     y_offset = 50
     for line in tutorial_texts:
-        text = font.render(line, True, BLACK)
+        text = font.render(line, True, WHITE)
         screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, y_offset))
         y_offset += 40
     pygame.display.flip()
@@ -224,7 +224,7 @@ def display_tutorial():
 # Function to display the character selection screen
 def display_character_selection(selected_character=None):
     font = pygame.font.Font(None, 50)
-    title_text = font.render("Select Your Character", True, BLACK)
+    title_text = font.render("Select Your Character", True, WHITE)
 
     screen.blit(background_image, (0, 0))
     screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, 40))
@@ -382,7 +382,7 @@ while True:
             player_x = max(0, min(SCREEN_WIDTH - 70, player_x))  # Keep player within bounds
 
             # Spawn obstacles at controlled intervals using time tracking
-            if pygame.time.get_ticks() - obstacle_spawn_time > 1500:  # Spawn every 1.5 seconds
+            if pygame.time.get_ticks() - obstacle_spawn_time > 1000:  # Spawn every 1.5 seconds
                 obstacles.append(create_obstacle())
                 obstacle_spawn_time = pygame.time.get_ticks()
 
