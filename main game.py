@@ -10,7 +10,7 @@ SCREEN_WIDTH = 580
 SCREEN_HEIGHT = 620
 CAMERA_WIDTH = 640 
 CAMERA_HEIGHT = 500
-WHITE, BLACK, RED, GREEN = (255, 255, 255), (0, 0, 0), (255, 0, 0), (0, 255, 0)
+WHITE, RED, GREEN = (255, 255, 255), (255, 0, 0), (0, 255, 0)
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH + CAMERA_WIDTH, SCREEN_HEIGHT)) 
@@ -68,7 +68,6 @@ def create_obstacle():
     if color == GREEN:
         size = 50
     return {'rect': pygame.Rect(x_pos, y_pos, size, size), 'speed': speed, 'color': color}
-
 
 # Initialize MediaPipe Hands module (with optimization)
 mp_hands = mp.solutions.hands
@@ -152,7 +151,7 @@ def display_menu():
     quit_text = font.render("QUIT", True, WHITE)
 
     # Clear the webcam area
-    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH, 0, CAMERA_WIDTH, SCREEN_HEIGHT))
+    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH, 0, CAMERA_WIDTH, SCREEN_HEIGHT))
 
     # Draw the menu
     screen.blit(menu_image, (0, 0)) # Menu image
@@ -226,7 +225,7 @@ def display_character_selection(selected_character=None):
     font = pygame.font.Font(None, 50)
     title_text = font.render("Select Your Character", True, WHITE)
 
-    screen.blit(background_image, (0, 0))
+    screen.blit(menu_image, (0, 0))
     screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, 40))
 
     spacing = 20
@@ -382,7 +381,7 @@ while True:
             player_x = max(0, min(SCREEN_WIDTH - 70, player_x))  # Keep player within bounds
 
             # Spawn obstacles at controlled intervals using time tracking
-            if pygame.time.get_ticks() - obstacle_spawn_time > 1000:  # Spawn every 1.5 seconds
+            if pygame.time.get_ticks() - obstacle_spawn_time > 1000:  # Spawn every 1 second
                 obstacles.append(create_obstacle())
                 obstacle_spawn_time = pygame.time.get_ticks()
 
