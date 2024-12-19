@@ -1,9 +1,9 @@
-# Endless Run Game
+# Journey to the West - Endless Run Game
 
 ## Giới thiệu
-*Endless Run* là một trò chơi thuộc thể loại chạy vô tận, nơi người chơi điều khiển một nhân vật vượt qua các chướng ngại vật và cố gắng sống sót lâu nhất có thể để đạt được điểm số cao.  
-- Người chơi sẽ phải đối mặt với các thử thách ngày càng khó khăn, tốc độ tăng dần và nhiều chướng ngại bất ngờ.  
-- Trò chơi kết thúc khi nhân vật va chạm quá số mạng cho phép.  
+*Journey to the West - Endless Run* là một trò chơi thuộc thể loại chạy vô tận, nơi người chơi điều khiển một trong 4 nhân vật Tây Du Ký né tránh các yêu quái và cố gắng sống sót lâu nhất có thể để đạt được điểm số cao.  
+- Người chơi sẽ phải đối mặt với nhiều kẻ thù dồn dập, bất ngờ, với tốc độ tăng dần.  
+- Trò chơi kết thúc khi số mạng của người chơi chạm con số 0.  
 
 Trò chơi được xây dựng bằng ngôn ngữ lập trình Python, kết hợp với thư viện Pygame để tạo nên đồ họa và âm thanh sinh động.
 
@@ -26,4 +26,4 @@ Trò chơi được xây dựng bằng ngôn ngữ lập trình Python, kết h�
 ### Cài đặt
 1. Clone dự án về máy:
    ```bash
-   git clone https://github.com/cheatydondon/endless-run.git
+   git clone https://github.com/lamtran91919/jotw-endless-run.git
