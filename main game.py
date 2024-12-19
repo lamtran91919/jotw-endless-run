@@ -66,7 +66,7 @@ def create_obstacle():
     speed = obstacle_speed + difficulty * 0.7  # Speed increases with difficulty
     color = RED if random.random() > 0.2 else GREEN  # Randomly choose obstacle color
     if color == GREEN:
-        size = 30
+        size = 50
     return {'rect': pygame.Rect(x_pos, y_pos, size, size), 'speed': speed, 'color': color}
 
 
