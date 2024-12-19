@@ -8,28 +8,26 @@ import mediapipe as mp
 # Constants
 SCREEN_WIDTH = 580
 SCREEN_HEIGHT = 620
-CAMERA_WIDTH = 640  # Width of the camera feed on the side
-CAMERA_HEIGHT = 500  # Same height as game screen
+CAMERA_WIDTH = 640 
+CAMERA_HEIGHT = 500
 WHITE, BLACK, RED, GREEN = (255, 255, 255), (0, 0, 0), (255, 0, 0), (0, 255, 0)
 
-# Initialize pygame
 pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH + CAMERA_WIDTH, SCREEN_HEIGHT))  # Increased width for camera
+screen = pygame.display.set_mode((SCREEN_WIDTH + CAMERA_WIDTH, SCREEN_HEIGHT)) 
 pygame.display.set_caption("Journey to the West - Endless Run")
 pygame.mixer.init()
 
-# Load resources (images) once during initialization
-player_image = pygame.image.load("player.png")  # Player sprite
-player_image = pygame.transform.scale(player_image, (50, 50))  # Scale player image
+player_image = pygame.image.load("player.png") 
+player_image = pygame.transform.scale(player_image, (50, 50))  
 
-background_image = pygame.image.load("background.png")  # Background image
-background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale to fit screen
+background_image = pygame.image.load("background.png")  
+background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-obstacle_image = pygame.image.load("obstacle.png")  # RED obstacle image
-points_image = pygame.image.load("point.png")  # GREEN obstacle image
+obstacle_image = pygame.image.load("obstacle.png")
+points_image = pygame.image.load("point.png")
 
-menu_image = pygame.image.load("menu.png") # Menu image
-menu_image = pygame.transform.scale(menu_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale to fit screen
+menu_image = pygame.image.load("menu.png")
+menu_image = pygame.transform.scale(menu_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 character_images = [
     pygame.image.load("character1.png"),
@@ -39,10 +37,9 @@ character_images = [
 ]
 character_images = [pygame.transform.scale(img, (60, 60)) for img in character_images]
 
-# Load sound files
-collision_sound = pygame.mixer.Sound("collision.wav")  # Sound effect for collision
-pygame.mixer.music.load("theme.wav")  # Theme music
-pygame.mixer.music.set_volume(0.5)  # Set the volume (optional)
+collision_sound = pygame.mixer.Sound("collision.wav")
+pygame.mixer.music.load("theme.wav")
+pygame.mixer.music.set_volume(0.5)
 
 # Game variables
 player_x = SCREEN_WIDTH // 2
@@ -179,15 +176,15 @@ def handle_menu():
                 if event.button == 1:  # Left mouse click
                     mouse_x, mouse_y = pygame.mouse.get_pos()
 
-                    # Check if the "Play" button was clicked
+                    # "Play" button
                     if SCREEN_WIDTH // 2 - 100 < mouse_x < SCREEN_WIDTH // 2 + 100 and SCREEN_HEIGHT // 2 - 30 < mouse_y < SCREEN_HEIGHT // 2 + 30:
-                        return 'play'  # Return 'play' to start the game
+                        return 'play'
                     
-                    # Check if the "Tutorial" button was clicked
+                    # "Tutorial" button
                     elif SCREEN_WIDTH // 2 - 100 < mouse_x < SCREEN_WIDTH // 2 + 100 and SCREEN_HEIGHT // 2 + 30 < mouse_y < SCREEN_HEIGHT // 2 + 90:
-                        return 'tutorial'  # Return 'tutorial' for tutorial screen
+                        return 'tutorial'
 
-                    # Check if the "Quit" button was clicked
+                    # "Quit" button
                     if SCREEN_WIDTH // 2 - 100 < mouse_x < SCREEN_WIDTH // 2 + 100 and SCREEN_HEIGHT // 2 + 90 < mouse_y < SCREEN_HEIGHT // 2 + 120:
                         pygame.quit()
                         sys.exit()
@@ -225,25 +222,28 @@ def display_tutorial():
         clock.tick(60)
 
 # Function to display the character selection screen
-def display_character_selection():
+def display_character_selection(selected_character=None):
     font = pygame.font.Font(None, 50)
     title_text = font.render("Select Your Character", True, BLACK)
 
-    # Draw title text
     screen.blit(background_image, (0, 0))
     screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, 40))
 
-    # Display the character images horizontally
     spacing = 20
-    character_width = 100
+    character_width = 60
     total_width = len(character_images) * character_width + (len(character_images) - 1) * spacing
-
     start_x = (SCREEN_WIDTH - total_width) // 2
+
     for i, char_image in enumerate(character_images):
         x_position = start_x + i * (character_width + spacing)
-        screen.blit(char_image, (SCREEN_WIDTH // 2 - (len(character_images) * 100) // 2 + i * (80 + spacing), SCREEN_HEIGHT // 2 - 50))
+        screen.blit(char_image, (x_position, SCREEN_HEIGHT // 2 - character_width // 2))
+        
+        # Highlight the selected character
+        if selected_character == i:
+            pygame.draw.rect(screen, RED, (x_position - 5, SCREEN_HEIGHT // 2 - character_width // 2 - 5, character_width + 10, character_width + 10), 3)
 
     pygame.display.flip()
+
 
 # Function to handle character selection
 def handle_character_selection():
@@ -261,36 +261,38 @@ def handle_character_selection():
 
                     # Check if a character was clicked (based on image positions)
                     for i, char_image in enumerate(character_images):
-                        char_x = SCREEN_WIDTH // 2 - (len(character_images) * 100) // 2 + i * (100 + 50)
-                        char_y = SCREEN_HEIGHT // 2 - 50
-                        char_rect = pygame.Rect(char_x, char_y, 100, 100)
+                        spacing = 20  # Match the spacing from display_character_selection
+                        character_width = 60
+                        character_height = 60
+                        char_x = (SCREEN_WIDTH - (len(character_images) * (character_width + spacing) - spacing)) // 2 + i * (character_width + spacing)
+                        char_y = SCREEN_HEIGHT // 2 - character_height // 2
+                        char_rect = pygame.Rect(char_x, char_y, character_width, character_height)
 
                         if char_rect.collidepoint(mouse_x, mouse_y):
                             selected_character = i  # Select the character
                             selection_made = True
                             break
+                        display_character_selection(selected_character)
+
 
         display_character_selection()
 
 
 # Game Over screen function
 def display_game_over(score):
-    pygame.mixer.music.stop()  # Stop the background music when game is over
-    screen.fill((0, 0, 0))  # Fill screen with black background
+    pygame.mixer.music.stop() 
+    screen.fill((0, 0, 0))
     font = pygame.font.Font(None, 72)
     
-    # Render the "Game Over" message
-    game_over_text = font.render("GAME OVER", True, (255, 0, 0))  # Red color
+    game_over_text = font.render("GAME OVER", True, (255, 0, 0))
     text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3))
     screen.blit(game_over_text, text_rect)
     
-    # Render the final score
     font = pygame.font.Font(None, 48)
     score_text = font.render(f"Final Score: {score}", True, (255, 255, 255))
     score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     screen.blit(score_text, score_rect)
     
-    # Render the restart or quit option
     restart_text = font.render("R: Restart, M: Menu, Q: Quit", True, (255, 255, 255))
     restart_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.5))
     screen.blit(restart_text, restart_rect)
@@ -337,22 +339,14 @@ menu_choice = handle_menu()  # Handle the menu once at the start
 
 while True:
     if menu_choice == 'play':
-        reset_game()  # Reset the game variables before starting
+        reset_game()
         menu_choice = None
-
-        # Reset the selected character to None before displaying character selection
-        selected_character = None  # Ensure the character selection happens each time
-
-        # Show the character selection screen
-        handle_character_selection()  # Player selects a character
-
-        # Initialize the selected character's image only after selection
+        selected_character = None
+        handle_character_selection()
         if selected_character is not None:
             player_image = character_images[selected_character]
-            
-        pygame.mixer.music.play(-1, 0.0)  # Start background music (looped)
+        pygame.mixer.music.play(-1, 0.0)
 
-        # Start the game
         running = True
         while running:
             # Draw the background image first
@@ -376,13 +370,12 @@ while True:
             if hand_pos and hand_landmarks:
                 cx, cy = hand_pos
 
-                # Player movement based on hand position
                 if cx < SCREEN_WIDTH // 3:
-                    player_velocity_x = -20  # Move left with smooth velocity
+                    player_velocity_x = -15  # Move left
                 elif cx > 2 * SCREEN_WIDTH // 3:
-                    player_velocity_x = 20  # Move right with smooth velocity
+                    player_velocity_x = 15  # Move right
                 else:
-                    player_velocity_x = 0  # Stop moving horizontally if hand is in the middle
+                    player_velocity_x = 0  # Stop moving
 
             # Horizontal movement
             player_x += player_velocity_x
@@ -454,7 +447,6 @@ while True:
             # Capture and display mirrored webcam feed
             ret, frame = cap.read()
             if ret:
-                # Convert to RGB (for pygame rendering)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                 # Rotate the frame for proper display in pygame (top to bottom)
@@ -463,11 +455,11 @@ while True:
                 # Convert numpy array to a pygame surface
                 frame = pygame.surfarray.make_surface(frame)
 
-                # Draw hand landmarks on the mirrored frame
+                # Draw hand landmarks
                 if hand_landmarks:
                     frame = draw_hand_landmarks(frame, hand_landmarks)
 
-                # Draw the mirrored webcam feed on the right side panel
+                # Draw the mirrored webcam feed
                 screen.blit(frame, (SCREEN_WIDTH, 0))
 
             pygame.display.flip()
