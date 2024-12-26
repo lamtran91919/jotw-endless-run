@@ -24,10 +24,14 @@ background_image = pygame.image.load("background.png")
 background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 obstacle_image = pygame.image.load("obstacle.png")
-points_image = pygame.image.load("point.png")
+ammo_image = pygame.image.load("point.png")
+bullet_image = pygame.image.load("bullet.png") 
 
 menu_image = pygame.image.load("menu.png")
 menu_image = pygame.transform.scale(menu_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+tutorial_bg_image = pygame.image.load("tutorial_bg.png")
+tutorial_bg_image = pygame.transform.scale(tutorial_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 character_images = [
     pygame.image.load("character1.png"),
@@ -54,6 +58,11 @@ obstacle_spawn_time = pygame.time.get_ticks()  # Track time for spawning obstacl
 first_obstacle_spawned = False  # Flag to check if the first obstacle has appeared
 selected_character = None  # Keep track of selected character
 game_running = False
+bullets = []  # List to store active bullets
+bullet_speed = 10
+player_bullets = 3
+last_shot_time = 0  # Time when the last shot was fired
+shoot_cooldown = 500  # Cooldown in milliseconds
 
 # Initialize camera using OpenCV
 cap = cv2.VideoCapture(0)
@@ -63,7 +72,7 @@ def create_obstacle():
     size = 70
     x_pos = random.randint(0, SCREEN_WIDTH - size)  # Random horizontal position
     y_pos = -size  # Spawn above the screen (just out of view)
-    speed = obstacle_speed + difficulty * 0.7  # Speed increases with difficulty
+    speed = obstacle_speed + difficulty * 0.5  # Speed increases with difficulty
     color = RED if random.random() > 0.2 else GREEN  # Randomly choose obstacle color
     if color == GREEN:
         size = 50
@@ -72,8 +81,8 @@ def create_obstacle():
 # Initialize MediaPipe Hands module (with optimization)
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(
-    min_detection_confidence=0.5,  # Lower detection confidence for faster processing
-    min_tracking_confidence=0.5,   # Lower tracking confidence for faster processing
+    min_detection_confidence=0.4,  # Lower detection confidence for faster processing
+    min_tracking_confidence=0.4,   # Lower tracking confidence for faster processing
     max_num_hands=1                # Only track one hand to reduce computation
 )
 mp_drawing = mp.solutions.drawing_utils
@@ -142,6 +151,17 @@ def draw_hand_landmarks(frame, hand_landmarks):
 
     return frame
 
+# Function to draw two vertical lines on the webcam feed
+def draw_vertical_lines(frame):
+    height, width, _ = frame.shape
+    line1_x = width // 3  # Position for the first vertical line (one-third width)
+    line2_x = 2 * width // 3  # Position for the second vertical line (two-thirds width)
+
+    # Draw the lines on the frame
+    cv2.line(frame, (line1_x, 0), (line1_x, height), RED, 2)
+    cv2.line(frame, (line2_x, 0), (line2_x, height), RED, 2)
+    return frame
+
 # Function to display the menu screen
 def display_menu():
     font = pygame.font.Font(None, 50)
@@ -194,12 +214,14 @@ def display_tutorial():
     font = pygame.font.Font(None, 36)
     tutorial_texts = [
         "Move your hand to control your character",
-        "Avoid the demons and catch the scriptures",
+        "Close your fingers to shoot your staffs",
+        "Earn more by catching the scriptures",
+        "Avoid or shoot the demons to survive",
         "Get the highest possible score!",
         "                               ",
         "(Click anywhere to return to the main menu)"
     ]
-    screen.blit(menu_image, (0, 0)) # Tutorial image (same as menu image)
+    screen.blit(tutorial_bg_image, (0, 0)) # Tutorial image (same as menu image)
     # Render and display the tutorial text
     y_offset = 50
     for line in tutorial_texts:
@@ -316,7 +338,7 @@ def display_game_over(score):
 
 # Function to reset game variables for restart
 def reset_game():
-    global player_x, player_y, player_velocity_x, score, difficulty, obstacle_speed, lives, obstacles, obstacle_spawn_time, first_obstacle_spawned, game_running
+    global player_x, player_y, player_velocity_x, score, difficulty, obstacle_speed, lives, obstacles, obstacle_spawn_time, first_obstacle_spawned, game_running, player_bullets
     player_x = SCREEN_WIDTH // 2
     player_y = SCREEN_HEIGHT - 70
     player_velocity_x = 0  # Reset horizontal velocity
@@ -329,6 +351,12 @@ def reset_game():
     first_obstacle_spawned = False
     game_running = False  # Reset running state
     selected_character = None
+    bullets = []  # List to store active bullets
+    bullet_speed = 10
+    player_bullets = 3
+    last_shot_time = 0  # Time when the last shot was fired
+    shoot_cooldown = 500  # Cooldown in milliseconds
+
 
 # Main game loop
 clock = pygame.time.Clock()
@@ -364,24 +392,68 @@ while True:
                         menu_choice = 'menu'
                         running = False
                         break
+
             # Hand detection and control logic
             hand_pos, hand_landmarks = detect_hand_position()
             if hand_pos and hand_landmarks:
                 cx, cy = hand_pos
 
-                if cx < SCREEN_WIDTH // 3:
+                if cx < SCREEN_WIDTH // 3 + 60:
                     player_velocity_x = -15  # Move left
-                elif cx > 2 * SCREEN_WIDTH // 3:
-                    player_velocity_x = 15  # Move right
+                elif cx > 2 * SCREEN_WIDTH // 3 + 60:
+                    player_velocity_x = 15 # Move right
                 else:
                     player_velocity_x = 0  # Stop moving
+
+                # Shooting bullets with a fist-closing gesture
+                # Assuming `hand_landmarks` is already defined for detected hand landmarks
+
+                # Define landmarks for finger tips and DIP (Distal Interphalangeal) joints
+                finger_tips = [
+                    mp_hands.HandLandmark.INDEX_FINGER_TIP,
+                    mp_hands.HandLandmark.MIDDLE_FINGER_TIP,
+                    mp_hands.HandLandmark.RING_FINGER_TIP,
+                    mp_hands.HandLandmark.PINKY_TIP
+                ]
+
+                finger_dips = [
+                    mp_hands.HandLandmark.INDEX_FINGER_DIP,
+                    mp_hands.HandLandmark.MIDDLE_FINGER_DIP,
+                    mp_hands.HandLandmark.RING_FINGER_DIP,
+                    mp_hands.HandLandmark.PINKY_DIP
+                ]
+
+                # Check if fingers are curled into a fist
+                fist_closed = True
+                for tip, dip in zip(finger_tips, finger_dips):
+                    tip_pos = hand_landmarks.landmark[tip]
+                    dip_pos = hand_landmarks.landmark[dip]
+
+                    # Check if the fingertip is below the DIP joint (indicating a curl)
+                    if tip_pos.y < dip_pos.y:
+                        fist_closed = False
+                        break
+
+                # Check if thumb is tucked in (optional for stricter fist gesture)
+                thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+                thumb_ip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_IP]
+                if thumb_tip.x > thumb_ip.x:  # Adjust logic based on hand orientation
+                    fist_closed = False
+
+                # Shooting logic
+                current_time = pygame.time.get_ticks()
+                if fist_closed and player_bullets > 0 and current_time - last_shot_time > shoot_cooldown:
+                    bullets.append({'x': player_x + 25, 'y': player_y + 25})  # Spawn bullet above player
+                    player_bullets -= 1 
+                    last_shot_time = current_time
 
             # Horizontal movement
             player_x += player_velocity_x
             player_x = max(0, min(SCREEN_WIDTH - 70, player_x))  # Keep player within bounds
 
-            # Spawn obstacles at controlled intervals using time tracking
-            if pygame.time.get_ticks() - obstacle_spawn_time > 1000:  # Spawn every 1 second
+            # Spawning obstacles
+            spawn_interval = max(1500 - (score * 2), 300)
+            if pygame.time.get_ticks() - obstacle_spawn_time > spawn_interval:
                 obstacles.append(create_obstacle())
                 obstacle_spawn_time = pygame.time.get_ticks()
 
@@ -394,12 +466,12 @@ while True:
                 obstacle['rect'].y += obstacle['speed']
 
                 # Efficient collision detection using the bounding box
-                if obstacle['rect'].colliderect(pygame.Rect(player_x, player_y, 70, 70)):
+                if obstacle['rect'].colliderect(pygame.Rect(player_x, player_y, 60, 60)):
                     if obstacle['color'] == RED:
                         lives -= 1  # Red obstacle collision
                         collision_sound.play()  # Play collision sound
                     elif obstacle['color'] == GREEN:
-                        score += 10  # GREEN obstacle collision
+                        player_bullets += 1  # GREEN obstacle collision
                     obstacles.remove(obstacle)
 
                     if lives == 0:
@@ -420,19 +492,41 @@ while True:
                     obstacles.remove(obstacle)
                     score += 1
 
+            # Move bullets and check for collisions with obstacles
+            for bullet in bullets[:]:
+                bullet['y'] -= bullet_speed  # Move bullet upward
+
+                # Remove bullet if it goes off-screen
+                if bullet['y'] < 0:
+                    bullets.remove(bullet)
+                
+                # Check for collisions with red obstacles
+                for obstacle in obstacles[:]:
+                    if obstacle['color'] == RED and obstacle['rect'].colliderect(
+                            pygame.Rect(bullet['x'], bullet['y'], 10, 10)):
+                        obstacles.remove(obstacle)
+                        bullets.remove(bullet)
+                        score += 10
+                        break
+
             # Adjust difficulty and obstacle speed
             difficulty = score // 20 + 1
             obstacle_speed = 3 + difficulty * 0.5
 
             # Draw player and obstacles
             screen.blit(player_image, (player_x, player_y))  # Draw player sprite
+            
+            bullet_image = pygame.transform.scale(bullet_image, (30, 60))
+            for bullet in bullets:
+                bullet_rect = pygame.Rect(bullet['x'], bullet['y'], 30, 60)
+                screen.blit(bullet_image, bullet_rect)  # Draw bullet image
 
             for obstacle in obstacles:
                 if obstacle['color'] == RED:
                     screen.blit(pygame.transform.scale(obstacle_image, (obstacle['rect'].width, obstacle['rect'].height)),
                                 obstacle['rect'].topleft)
                 else:
-                    screen.blit(pygame.transform.scale(points_image, (obstacle['rect'].width, obstacle['rect'].height)),
+                    screen.blit(pygame.transform.scale(ammo_image, (obstacle['rect'].width, obstacle['rect'].height)),
                                 obstacle['rect'].topleft)
 
             # Display score and lives
@@ -443,10 +537,16 @@ while True:
             lives_text = font.render(f"Lives: {lives}", True, WHITE)
             screen.blit(lives_text, (SCREEN_WIDTH - 150, 10))
 
+            bullets_text = font.render(f"Spells: {player_bullets}", True, WHITE)
+            screen.blit(bullets_text, (SCREEN_WIDTH // 2 - 50, 10))
+
             # Capture and display mirrored webcam feed
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                # Draw 3 vertical lines
+                frame = draw_vertical_lines(frame)
 
                 # Rotate the frame for proper display in pygame (top to bottom)
                 frame = np.rot90(frame)
@@ -457,7 +557,7 @@ while True:
                 # Draw hand landmarks
                 if hand_landmarks:
                     frame = draw_hand_landmarks(frame, hand_landmarks)
-
+                
                 # Draw the mirrored webcam feed
                 screen.blit(frame, (SCREEN_WIDTH, 0))
 
